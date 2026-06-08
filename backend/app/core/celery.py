@@ -71,12 +71,11 @@ def reconcile_product_names(_results=None):
 @celery.task
 def backfill_csv(days: int = 30):
     today = datetime.date.today()
+    tasks = []
     for i in range(days):
         date = today - datetime.timedelta(days=i)
-        job = PriceCsvImportJob()
-        for retailer_id in job.supported_retailer_ids():
-            job.import_retailer(retailer_id=retailer_id, date=date)
-    PriceCsvImportJob().reconcile_product_names()
+        tasks.append(download_csv.si(date=date))
+    chain(*tasks).apply_async()
 
 
 @celery.task

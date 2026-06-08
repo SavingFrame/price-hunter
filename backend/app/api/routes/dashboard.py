@@ -2,10 +2,10 @@ from datetime import date, timedelta
 from decimal import Decimal
 
 from fastapi import APIRouter
-from sqlmodel import SQLModel, func, select
+from sqlmodel import SQLModel, select
 
 from app.api.deps import SessionDep
-from app.models.price_observation import PriceObservation
+from app.models import PriceObservationDaily
 from app.models.product import Product, ProductPublic
 from app.models.retailer import Retailer, RetailerPublic
 
@@ -39,28 +39,24 @@ def read_price_movers(session: SessionDep, limit: int = 10):
 
     current_prices = (
         select(
-            PriceObservation.product_id.label("product_id"),
-            PriceObservation.retailer_id.label("retailer_id"),
-            func.avg(PriceObservation.price_eur).label("current_price_eur"),
+            PriceObservationDaily.product_id.label("product_id"),
+            PriceObservationDaily.retailer_id.label("retailer_id"),
+            PriceObservationDaily.price_eur_avg.label("current_price_eur"),
         )
         .where(
-            PriceObservation.observed_date == current_date,
-            PriceObservation.price_eur.is_not(None),
+            PriceObservationDaily.observed_date == current_date,
         )
-        .group_by(PriceObservation.product_id, PriceObservation.retailer_id)
         .subquery()
     )
     previous_prices = (
         select(
-            PriceObservation.product_id.label("product_id"),
-            PriceObservation.retailer_id.label("retailer_id"),
-            func.avg(PriceObservation.price_eur).label("previous_price_eur"),
+            PriceObservationDaily.product_id.label("product_id"),
+            PriceObservationDaily.retailer_id.label("retailer_id"),
+            PriceObservationDaily.price_eur_avg.label("previous_price_eur"),
         )
         .where(
-            PriceObservation.observed_date == previous_date,
-            PriceObservation.price_eur.is_not(None),
+            PriceObservationDaily.observed_date == previous_date,
         )
-        .group_by(PriceObservation.product_id, PriceObservation.retailer_id)
         .subquery()
     )
 
