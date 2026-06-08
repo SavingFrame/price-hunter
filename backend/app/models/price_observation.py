@@ -30,9 +30,8 @@ class PriceObservationBase(SQLModel):
         max_length=255,
         description="Product name exactly as it appeared in the source price list.",
     )
-    price_eur: Decimal | None = Field(
-        default=None,
-        sa_column=Column(Numeric(10, 2), nullable=True),
+    price_eur: Decimal = Field(
+        sa_column=Column(Numeric(10, 2), nullable=False),
         description="Current product price from the source price list.",
     )
     unit_price_eur: Decimal = Field(

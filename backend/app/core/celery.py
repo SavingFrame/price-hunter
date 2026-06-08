@@ -6,6 +6,7 @@ from celery.schedules import crontab
 from sqlmodel import Session
 
 from app.core.db import engine
+from app.services.daily_observation_service import ObservationDailyCalculator
 from app.services.openfoodfacts_product_images import OpenFoodFactsProductImageSyncer
 from app.services.price_csv_import_job import PriceCsvImportJob, parse_import_date
 
@@ -35,7 +36,23 @@ def download_csv(date: datetime.date | str | None = None):
         )
         for retailer_id in job.supported_retailer_ids()
     ]
-    chain(*retailer_tasks, reconcile_product_names.si()).apply_async()
+    chain(
+        *retailer_tasks,
+        reconcile_product_names.si(),
+        calculate_observation_daily.si(date_from=today, date_to=today),
+    ).apply_async()
+
+
+@celery.task
+def calculate_observation_daily(date_from: datetime.date, date_to: datetime.date):
+
+    with Session(engine) as session:
+        calculator = ObservationDailyCalculator(
+            date_from=date_from,
+            date_to=date_to,
+            session=session,
+        )
+        calculator.calculate()
 
 
 @celery.task

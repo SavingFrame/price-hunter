@@ -7,6 +7,7 @@ from sqlmodel import Field, Relationship, SQLModel
 
 if TYPE_CHECKING:
     from app.models.price_observation import PriceObservation
+    from app.models.price_observation_daily import PriceObservationDaily
     from app.models.product_alias import ProductAlias
     from app.models.product_list import ProductListItem, ProductListItemAlternative
     from app.models.receipt import ReceiptItem
@@ -58,6 +59,9 @@ class Product(ProductBase, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
 
     price_observations: list["PriceObservation"] = Relationship(
+        back_populates="product",
+    )
+    daily_price_observations: list["PriceObservationDaily"] = Relationship(
         back_populates="product",
     )
     aliases: list["ProductAlias"] = Relationship(back_populates="product")
