@@ -166,7 +166,8 @@ class PriceCsvImporter:
     ) -> None:
         self.parser = parser
         self.observed_date = observed_date
-        self._products: list[dict[str, uuid.UUID | str | None]] = []
+        self._products_by_barcode: dict[str, uuid.UUID] = {}
+        self._products_by_retailer_code: dict[str, uuid.UUID] = {}
 
     def import_prices(
         self,
@@ -174,16 +175,19 @@ class PriceCsvImporter:
         rows: Iterable[CsvRow],
         store: Store,
     ) -> None:
+        self._products_by_barcode.clear()
+        self._products_by_retailer_code.clear()
         if self.parser.retailer_id != store.retailer_id:
             raise ValueError(
                 f"CSV parser {self.parser.retailer_name} does not match store retailer."
             )
 
-        normalized_rows = [
-            normalized_row
-            for row in rows
-            if (normalized_row := self.parser.normalize_row(row))
-        ]
+        normalized_rows = []
+        for raw_row in rows:
+            normalized_row = self.parser.normalize_row(raw_row)
+            if normalized_row:
+                normalized_rows.append(normalized_row)
+
         self._upsert_barcode_products(normalized_rows, session=session)
         self._insert_products_without_barcode(normalized_rows, session=session)
         aliases = {}
@@ -234,8 +238,11 @@ class PriceCsvImporter:
                 "is_special_sale": row.is_special_sale,
                 "source_file_name": None,
             }
+
         self._insert_observations(list(observations.values()), session=session)
+
         self._insert_aliases(list(aliases.values()), session=session)
+
         session.commit()
 
     def _upsert_barcode_products(
@@ -272,8 +279,8 @@ class PriceCsvImporter:
                 },
             ).returning(Product.id, Product.barcode)
             results = session.exec(stmt)
-            for row in results:
-                self._products.append({"id": row[0], "barcode": row[1]})
+            for product_id, barcode in results:
+                self._products_by_barcode[barcode] = product_id
 
     def _insert_products_without_barcode(
         self, rows: list[NormalizedPriceRow], session: Session
@@ -300,13 +307,7 @@ class PriceCsvImporter:
             if retailer_product_code in existing_product_codes:
                 continue
             existing_product_codes.add(retailer_product_code)
-            self._products.append(
-                {
-                    "id": product_id,
-                    "barcode": None,
-                    "retailer_product_code": retailer_product_code,
-                }
-            )
+            self._products_by_retailer_code[retailer_product_code] = product_id
 
         missing_rows = [
             row
@@ -330,36 +331,16 @@ class PriceCsvImporter:
                     "category": row.category,
                 }
             )
-            self._products.append(
-                {
-                    "id": product_id,
-                    "barcode": None,
-                    "retailer_product_code": row.retailer_product_code,
-                }
-            )
+            self._products_by_retailer_code[row.retailer_product_code] = product_id
 
         for product_rows_chunk in _chunks(product_rows):
             session.exec(insert(Product).values(product_rows_chunk))
 
     def _get_product_id(self, row: NormalizedPriceRow) -> uuid.UUID | None:
         if row.barcode:
-            result = next(
-                (
-                    product["id"]
-                    for product in self._products
-                    if product["barcode"] == row.barcode
-                ),
-                None,
-            )
+            result = self._products_by_barcode.get(row.barcode)
         else:
-            result = next(
-                (
-                    product["id"]
-                    for product in self._products
-                    if product.get("retailer_product_code") == row.retailer_product_code
-                ),
-                None,
-            )
+            result = self._products_by_retailer_code.get(row.retailer_product_code)
 
         if not result:
             logger.warning(
