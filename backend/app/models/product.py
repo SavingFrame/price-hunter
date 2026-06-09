@@ -2,7 +2,6 @@ import uuid
 from decimal import Decimal
 from typing import TYPE_CHECKING
 
-from pydantic import model_validator
 from sqlmodel import Field, Relationship, SQLModel
 
 if TYPE_CHECKING:
@@ -82,27 +81,6 @@ class ProductPublic(ProductBase):
         default=None,
         description="Product price from one latest available observation.",
     )
-
-    @model_validator(mode="after")
-    def set_default_image_url(self) -> "ProductPublic":
-        if not self.barcode:
-            return self
-
-        cleaned_barcode = self.barcode.strip()
-        if not cleaned_barcode.isdigit() or len(cleaned_barcode) <= 4:
-            return self
-
-        prefix_length = len(cleaned_barcode) - 4
-        groups = [
-            cleaned_barcode[index : index + 3] for index in range(0, prefix_length, 3)
-        ]
-        groups.append(cleaned_barcode[prefix_length:])
-        product_path = "/".join(groups)
-        self.image_url = (
-            "https://openfoodfacts-images.s3.eu-west-3.amazonaws.com/"
-            f"data/{product_path}/1.400.jpg"
-        )
-        return self
 
 
 class ProductsPublic(SQLModel):

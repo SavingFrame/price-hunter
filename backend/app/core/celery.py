@@ -8,7 +8,7 @@ from sqlmodel import Session
 
 from app.core.db import engine
 from app.services.daily_observation_service import ObservationDailyCalculator
-from app.services.openfoodfacts_product_images import OpenFoodFactsProductImageSyncer
+from app.services.open_food_facts.s3_image_syncer import S3ImageSyncer
 from app.services.price_csv_import_job import PriceCsvImportJob
 
 logger = logging.getLogger(__name__)
@@ -23,6 +23,10 @@ celery.conf.beat_schedule = {
     "download-csv-daily-at-7am": {
         "task": "app.core.celery.download_csv",
         "schedule": crontab(hour=7, minute=0),
+    },
+    "sync-product-images-every-2-week": {
+        "task": "app.core.celery.sync_product_images",
+        "schedule": crontab(hour=7, minute=0, day_of_week="mon", week_of_month="1,3"),
     },
 }
 
@@ -76,6 +80,8 @@ def reconcile_product_names(_results=None):
 @celery.task
 def backfill_csv(days: int = 30):
     today = datetime.date.today()
+    date_from = today - datetime.timedelta(days=days)
+
     retailer_tasks = []
 
     job = PriceCsvImportJob()
@@ -93,14 +99,16 @@ def backfill_csv(days: int = 30):
     chain(
         *retailer_tasks,
         reconcile_product_names.si(),
-        calculate_observation_daily.si(date_from=date, date_to=date),
+        calculate_observation_daily.si(date_from=date_from, date_to=today),
     ).apply_async()
 
 
 @celery.task
-def sync_product_images(limit: int | None = None):
+def sync_product_images():
     with Session(engine) as session:
-        OpenFoodFactsProductImageSyncer().sync_missing_product_images(
-            session=session,
-            limit=limit,
-        )
+        syncer = S3ImageSyncer()
+        syncer.download_keys()
+        table = syncer.create_temporary_table(session)
+        syncer.copy_pictures_to_temp_table(session, table)
+        syncer.update_product_images(session, table)
+        session.commit()
