@@ -15,12 +15,10 @@ from tests.utils.utils import get_superuser_token_headers
 
 @pytest.fixture(scope="session", autouse=True)
 def db() -> Generator[Session, None, None]:
-    SQLModel.metadata.drop_all(engine)
     SQLModel.metadata.create_all(engine)
     with Session(engine) as session:
         init_db(session)
         yield session
-    SQLModel.metadata.drop_all(engine)
 
 
 @pytest_asyncio.fixture
