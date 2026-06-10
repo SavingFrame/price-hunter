@@ -3,7 +3,8 @@ from decimal import Decimal
 
 from sqlalchemy import bindparam, case, func, literal, or_, true
 from sqlalchemy import select as sa_select
-from sqlmodel import Session, select
+from sqlmodel import select
+from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.models.common import get_datetime_utc
 from app.models.price_observation import PriceObservation
@@ -70,9 +71,9 @@ class ReceiptProductMatcher:
         "RI.": "rigate ",
     }
 
-    def find_matching_product(
+    async def find_matching_product(
         self,
-        session: Session,
+        session: AsyncSession,
         retailer_id: uuid.UUID,
         parsed_item: ParsedReceiptItem,
     ) -> Product | None:
@@ -82,8 +83,8 @@ class ReceiptProductMatcher:
         for manual review should use a separate method later, because review UI needs
         lower-confidence candidates and explanation fields.
         """
-        self._set_similarity_threshold(session)
-        row = session.exec(
+        await self._set_similarity_threshold(session)
+        row = (await session.exec(
             self._build_product_match_statement().params(
                 stored_receipt_name=parsed_item.normalized_raw_name,
                 expanded_receipt_name=self.expand_receipt_name(parsed_item.raw_name),
@@ -91,18 +92,18 @@ class ReceiptProductMatcher:
                 line_total=parsed_item.line_total_eur,
                 retailer_id=retailer_id,
             ),
-        ).first()
+        )).first()
         if row is None:
             return None
 
         if float(row.exact_score) <= 0 and float(row.score) < self.accept_score:
             return None
 
-        return session.get(Product, row.product_id)
+        return await session.get(Product, row.product_id)
 
-    def create_or_update_product_alias(
+    async def create_or_update_product_alias(
         self,
-        session: Session,
+        session: AsyncSession,
         retailer_id: uuid.UUID,
         parsed_item: ParsedReceiptItem,
         product: Product,
@@ -115,7 +116,7 @@ class ReceiptProductMatcher:
             ProductAlias.retailer_product_code.is_(None),
             ProductAlias.source == ProductAliasSource.RECEIPT,
         )
-        alias = session.exec(statement).first()
+        alias = (await session.exec(statement)).first()
         if alias is None:
             alias = ProductAlias(
                 product_id=product.id,
@@ -139,7 +140,7 @@ class ReceiptProductMatcher:
             result = result.replace(source, target)
         return " ".join(result.lower().split())
 
-    def _set_similarity_threshold(self, session: Session) -> None:
+    async def _set_similarity_threshold(self, session: AsyncSession) -> None:
         """Set pg_trgm's `%` threshold for this transaction.
 
         PostgreSQL's `%` operator does not accept a threshold argument directly. It
@@ -147,7 +148,7 @@ class ReceiptProductMatcher:
         before running the query. The `true` flag makes the setting local to the
         current transaction.
         """
-        session.exec(
+        await session.exec(
             sa_select(
                 func.set_config(
                     "pg_trgm.similarity_threshold",

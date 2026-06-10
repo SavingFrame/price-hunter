@@ -31,7 +31,7 @@ class PriceMoversPublic(SQLModel):
 
 
 @router.get("/price-movers", response_model=PriceMoversPublic)
-def read_price_movers(session: SessionDep, limit: int = 10):
+async def read_price_movers(session: SessionDep, limit: int = 10):
     bounded_limit = min(max(limit, 1), 50)
 
     current_date = date.today()
@@ -84,16 +84,16 @@ def read_price_movers(session: SessionDep, limit: int = 10):
         .where(previous_prices.c.previous_price_eur > 0)
     )
 
-    price_drops = session.exec(
+    price_drops = (await session.exec(
         base_statement.where(absolute_change < 0)
         .order_by(percent_change.asc(), absolute_change.asc())
         .limit(bounded_limit),
-    ).all()
-    price_increases = session.exec(
+    )).all()
+    price_increases = (await session.exec(
         base_statement.where(absolute_change > 0)
         .order_by(percent_change.desc(), absolute_change.desc())
         .limit(bounded_limit),
-    ).all()
+    )).all()
 
     return PriceMoversPublic(
         current_date=current_date,

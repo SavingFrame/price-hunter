@@ -5,7 +5,8 @@ from decimal import Decimal
 
 from sqlalchemy import bindparam, case, desc, func, or_, union_all
 from sqlalchemy import select as sa_select
-from sqlmodel import Session, select
+from sqlmodel import select
+from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.models import PriceObservationDaily
 from app.models.product import Product
@@ -35,28 +36,30 @@ class ProductSimilarityService:
     candidate_query_limit = 120
     max_query_texts = 6
 
-    def find_similar_products(
+    async def find_similar_products(
         self,
-        session: Session,
+        session: AsyncSession,
         product_id: uuid.UUID,
         limit: int = 20,
     ) -> list[SimilarProductCandidate]:
-        target_product = session.get(Product, product_id)
+        target_product = await session.get(Product, product_id)
         if target_product is None:
             return []
 
-        query_texts = self._get_query_texts(session, target_product)
+        query_texts = await self._get_query_texts(session, target_product)
         if not query_texts:
             return []
 
-        target_retailer_ids = self._get_product_retailer_ids(session, target_product.id)
+        target_retailer_ids = await self._get_product_retailer_ids(
+            session, target_product.id
+        )
 
-        self._set_similarity_threshold(session)
+        await self._set_similarity_threshold(session)
         scored_product_ids: dict[uuid.UUID, Decimal] = {}
         for query_text in query_texts:
-            rows = session.exec(
+            rows = (await session.exec(
                 self._build_candidate_statement(query_text, target_product),
-            ).all()
+            )).all()
             for candidate_product_id, score in rows:
                 previous_score = scored_product_ids.get(candidate_product_id)
                 if previous_score is None or score > previous_score:
@@ -65,7 +68,7 @@ class ProductSimilarityService:
         if not scored_product_ids:
             return []
 
-        candidates = self._load_candidates(
+        candidates = await self._load_candidates(
             session=session,
             scored_product_ids=scored_product_ids,
             target_retailer_ids=target_retailer_ids,
@@ -80,13 +83,15 @@ class ProductSimilarityService:
         )
         return candidates[:limit]
 
-    def _get_query_texts(self, session: Session, target_product: Product) -> list[str]:
-        rows = session.exec(
+    async def _get_query_texts(
+        self, session: AsyncSession, target_product: Product
+    ) -> list[str]:
+        rows = (await session.exec(
             select(ProductAlias.normalized_alias_name)
             .where(ProductAlias.product_id == target_product.id)
             .order_by(ProductAlias.confidence.desc(), ProductAlias.last_seen_at.desc())
             .limit(self.max_query_texts - 1),
-        ).all()
+        )).all()
 
         query_texts = [self._normalize_query_text(target_product.name)]
         query_texts.extend(self._normalize_query_text(row) for row in rows)
@@ -105,8 +110,8 @@ class ProductSimilarityService:
     def _normalize_query_text(value: str | None) -> str:
         return " ".join((value or "").strip().lower().split())
 
-    def _set_similarity_threshold(self, session: Session) -> None:
-        session.exec(
+    async def _set_similarity_threshold(self, session: AsyncSession) -> None:
+        await session.exec(
             sa_select(
                 func.set_config(
                     "pg_trgm.similarity_threshold",
@@ -181,20 +186,20 @@ class ProductSimilarityService:
             else_=Decimal("0"),
         )
 
-    def _load_candidates(
+    async def _load_candidates(
         self,
-        session: Session,
+        session: AsyncSession,
         scored_product_ids: dict[uuid.UUID, Decimal],
         target_retailer_ids: set[uuid.UUID],
     ) -> list[SimilarProductCandidate]:
-        products = session.exec(
+        products = (await session.exec(
             select(Product).where(Product.id.in_(scored_product_ids.keys())),
-        ).all()
-        retailers_by_product_id = self._load_retailers_by_product_id(
+        )).all()
+        retailers_by_product_id = await self._load_retailers_by_product_id(
             session=session,
             product_ids=[product.id for product in products],
         )
-        price_stats_by_product_id = self._load_price_stats_by_product_id(
+        price_stats_by_product_id = await self._load_price_stats_by_product_id(
             session=session,
             product_ids=[product.id for product in products],
         )
@@ -226,29 +231,29 @@ class ProductSimilarityService:
         return candidates
 
     @staticmethod
-    def _get_product_retailer_ids(
-        session: Session,
+    async def _get_product_retailer_ids(
+        session: AsyncSession,
         product_id: uuid.UUID,
     ) -> set[uuid.UUID]:
-        rows = session.exec(
+        rows = (await session.exec(
             select(PriceObservationDaily.retailer_id)
             .where(PriceObservationDaily.product_id == product_id)
             .distinct(),
-        ).all()
+        )).all()
         return set(rows)
 
     @staticmethod
-    def _load_retailers_by_product_id(
-        session: Session,
+    async def _load_retailers_by_product_id(
+        session: AsyncSession,
         product_ids: list[uuid.UUID],
     ) -> dict[uuid.UUID, list[Retailer]]:
-        rows = session.exec(
+        rows = (await session.exec(
             select(PriceObservationDaily.product_id, Retailer)
             .join(Retailer, Retailer.id == PriceObservationDaily.retailer_id)
             .where(PriceObservationDaily.product_id.in_(product_ids))
             .group_by(PriceObservationDaily.product_id, Retailer.id)
             .order_by(PriceObservationDaily.product_id, Retailer.name),
-        ).all()
+        )).all()
 
         retailers_by_product_id: dict[uuid.UUID, list[Retailer]] = {}
         for product_id, retailer in rows:
@@ -257,8 +262,8 @@ class ProductSimilarityService:
         return retailers_by_product_id
 
     @staticmethod
-    def _load_price_stats_by_product_id(
-        session: Session,
+    async def _load_price_stats_by_product_id(
+        session: AsyncSession,
         product_ids: list[uuid.UUID],
     ) -> dict[uuid.UUID, tuple[Decimal | None, Decimal | None, date | None]]:
         latest_dates = (
@@ -272,7 +277,7 @@ class ProductSimilarityService:
             .group_by(PriceObservationDaily.product_id)
             .subquery("latest_dates")
         )
-        rows = session.exec(
+        rows = (await session.exec(
             select(
                 PriceObservationDaily.product_id,
                 PriceObservationDaily.price_eur_avg.label("latest_price_eur"),
@@ -290,7 +295,7 @@ class ProductSimilarityService:
             .where(
                 PriceObservationDaily.product_id.in_(product_ids),
             )
-        ).all()
+        )).all()
 
         return {
             product_id: (latest_price_eur, average_price_eur, latest_observed_date)

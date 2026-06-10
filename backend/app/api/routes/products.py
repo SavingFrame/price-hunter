@@ -5,6 +5,7 @@ from typing import ClassVar
 
 from fastapi import APIRouter, HTTPException
 from sqlalchemy import case, desc, or_
+from sqlalchemy.orm import selectinload
 from sqlmodel import SQLModel, func, select
 
 from app.api.deps import SessionDep
@@ -32,7 +33,7 @@ def serialize_products_with_latest_price(
 
 
 @router.get("", response_model=ProductsPublic)
-def read_products(
+async def read_products(
     session: SessionDep,
     skip: int = 0,
     limit: int = 20,
@@ -54,7 +55,7 @@ def read_products(
         count_statement = select(
             func.count(func.distinct(PriceObservationDaily.product_id)),
         ).where(PriceObservationDaily.observed_date == coverage_date)
-        count = session.exec(count_statement).one()
+        count = (await session.exec(count_statement)).one()
 
         product_coverage = (
             select(
@@ -87,7 +88,7 @@ def read_products(
             .offset(skip)
             .limit(limit)
         )
-        rows = session.exec(statement).all()
+        rows = (await session.exec(statement)).all()
 
         return ProductsPublic(
             count=count,
@@ -150,7 +151,7 @@ def read_products(
         .outerjoin(alias_scores, alias_scores.c.product_id == Product.id)
         .where(product_search_filter)
     )
-    count = session.exec(count_statement).one()
+    count = (await session.exec(count_statement)).one()
 
     product_coverage = (
         select(
@@ -186,7 +187,7 @@ def read_products(
         .offset(skip)
         .limit(limit)
     )
-    rows = session.exec(statement).all()
+    rows = (await session.exec(statement)).all()
 
     return ProductsPublic(
         count=count,
@@ -195,9 +196,9 @@ def read_products(
 
 
 @router.get("/{product_id}", response_model=ProductPublic)
-def read_product(product_id: uuid.UUID, session: SessionDep):
+async def read_product(product_id: uuid.UUID, session: SessionDep):
     statement = select(Product).where(Product.id == product_id)
-    product = session.exec(statement).one_or_none()
+    product = (await session.exec(statement)).one_or_none()
     if product is None:
         raise HTTPException(status_code=404, detail="Product not found")
     return product
@@ -242,12 +243,12 @@ class SimilarProductPublic(SQLModel):
 
 
 @router.get("/{product_id}/similar", response_model=list[SimilarProductPublic])
-def read_similar_products(
+async def read_similar_products(
     product_id: uuid.UUID,
     session: SessionDep,
     limit: int = 20,
 ):
-    product = session.get(Product, product_id)
+    product = await session.get(Product, product_id)
     if product is None:
         raise HTTPException(status_code=404, detail="Product not found")
 
@@ -261,7 +262,7 @@ def read_similar_products(
             latest_observed_date=candidate.latest_observed_date,
             score=candidate.score,
         )
-        for candidate in product_similarity_service.find_similar_products(
+        for candidate in await product_similarity_service.find_similar_products(
             session=session,
             product_id=product_id,
             limit=limit,
@@ -273,13 +274,17 @@ def read_similar_products(
     "/{product_id}/price-observations",
     response_model=list[NestedPriceObservation],
 )
-def product_price_observations(product_id: uuid.UUID, session: SessionDep):
+async def product_price_observations(product_id: uuid.UUID, session: SessionDep):
     statement = (
         select(PriceObservation)
+        .options(
+            selectinload(PriceObservation.retailer),
+            selectinload(PriceObservation.store),
+        )
         .where(PriceObservation.product_id == product_id)
         .order_by(PriceObservation.price_eur)
     )
-    price_observations = session.exec(statement).all()
+    price_observations = (await session.exec(statement)).all()
     return price_observations
 
 
@@ -287,7 +292,7 @@ def product_price_observations(product_id: uuid.UUID, session: SessionDep):
     "/{product_id}/price-history/retail/chart",
     response_model=list[RetailerDailyRetailPriceHistoryPoint],
 )
-def product_daily_retail_price_history_chart(
+async def product_daily_retail_price_history_chart(
     product_id: uuid.UUID,
     session: SessionDep,
 ):
@@ -305,7 +310,7 @@ def product_daily_retail_price_history_chart(
         .order_by(PriceObservationDaily.observed_date, Retailer.name)
     )
 
-    rows = session.exec(statement).all()
+    rows = (await session.exec(statement)).all()
     return [
         RetailerDailyRetailPriceHistoryPoint(
             retailer=retailer,
@@ -330,7 +335,7 @@ def product_daily_retail_price_history_chart(
     "/{product_id}/price-observations/grouped",
     response_model=list[RetailerPriceObservationSummary],
 )
-def grouped_product_price_observations(product_id: uuid.UUID, session: SessionDep):
+async def grouped_product_price_observations(product_id: uuid.UUID, session: SessionDep):
     latest_observations = (
         select(
             PriceObservationDaily.retailer_id,
@@ -371,7 +376,7 @@ def grouped_product_price_observations(product_id: uuid.UUID, session: SessionDe
         .order_by(PriceObservationDaily.price_eur_avg)
     )
 
-    rows = session.exec(statement).all()
+    rows = (await session.exec(statement)).all()
     return [
         RetailerPriceObservationSummary(
             retailer=retailer,
