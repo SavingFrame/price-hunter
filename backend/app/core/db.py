@@ -52,32 +52,3 @@ def init_db(session: Session) -> None:
             name=retailer.value.name,
             id=retailer.value.id,
         )
-    get_or_create(
-        session,
-        Store,
-        retailer_id=ReailerEnum.SPAR.value.id,
-        store_code="8711",
-        name="Interspar Supernova",
-        address="Kolakova 14",
-        prefix="hipermarket_zagreb_kolakova_14__dubrava_8711_interspar_zg_garden_dub._",
-    )
-
-    get_or_create(
-        session,
-        Store,
-        retailer_id=ReailerEnum.LIDL.value.id,
-        store_code="209",
-        name="Lidl Risnjačka 1",
-        address="Risnjačka ul. 1, 10000, Zagreb",
-        prefix="Supermarket 209_Risnjačka ulica_1_10000_Zagreb_",
-    )
-
-    get_or_create(
-        session,
-        Store,
-        retailer_id=ReailerEnum.KAUFLAND.value.id,
-        store_code="5930",
-        name="Kaufland Jablanska 80",
-        address="Jablanska ulica br. 80, Zagreb",
-        prefix="Hipermarket_Jablanska_ulica_br_80_Zagreb_5930_",
-    )
