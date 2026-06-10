@@ -6,6 +6,7 @@ from celery import Celery, chain
 from celery.schedules import crontab
 from sqlmodel import Session
 
+from app.core.config import settings
 from app.core.db import engine
 from app.services.daily_observation_service import ObservationDailyCalculator
 from app.services.open_food_facts.s3_image_syncer import S3ImageSyncer
@@ -15,8 +16,8 @@ logger = logging.getLogger(__name__)
 
 celery = Celery(
     "worker",
-    broker="redis://localhost:6379/12",
-    backend="redis://localhost:6379/13",  # result backend
+    broker=settings.CELERY_BROKER_URL,
+    backend=settings.CELERY_RESULT_BACKEND,
 )
 
 celery.conf.beat_schedule = {

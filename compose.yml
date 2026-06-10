@@ -20,6 +20,16 @@ services:
       - POSTGRES_DB=${POSTGRES_DB?Variable not set}
 
 
+  redis:
+    image: redis:8
+    restart: always
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      retries: 5
+      start_period: 5s
+      timeout: 5s
+
   prestart:
     image: '${DOCKER_IMAGE_BACKEND?Variable not set}:${TAG-latest}'
     build:
@@ -53,7 +63,8 @@ services:
       - POSTGRES_USER=${POSTGRES_USER?Variable not set}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD?Variable not set}
       - SENTRY_DSN=${SENTRY_DSN}
-
+      - CELERY_BROKER_URL=redis://redis:6379/12
+      - CELERY_RESULT_BACKEND=redis://redis:6379/13
   backend:
     image: '${DOCKER_IMAGE_BACKEND?Variable not set}:${TAG-latest}'
     restart: always
@@ -62,6 +73,9 @@ services:
       - default
     depends_on:
       db:
+        condition: service_healthy
+        restart: true
+      redis:
         condition: service_healthy
         restart: true
       prestart:
@@ -86,6 +100,8 @@ services:
       - POSTGRES_USER=${POSTGRES_USER?Variable not set}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD?Variable not set}
       - SENTRY_DSN=${SENTRY_DSN}
+      - CELERY_BROKER_URL=redis://redis:6379/12
+      - CELERY_RESULT_BACKEND=redis://redis:6379/13
 
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/utils/health-check"]
@@ -106,6 +122,90 @@ services:
       - traefik.http.routers.${STACK_NAME?Variable not set}-backend-http.rule=Host(`${DOMAIN?Variable not set}`) && PathPrefix(`/api`)
       - traefik.http.routers.${STACK_NAME?Variable not set}-backend-http.entrypoints=http
       - traefik.http.routers.${STACK_NAME?Variable not set}-backend-http.priority=100
+
+  celery-worker:
+    image: '${DOCKER_IMAGE_BACKEND?Variable not set}:${TAG-latest}'
+    restart: always
+    networks:
+      - default
+    depends_on:
+      db:
+        condition: service_healthy
+        restart: true
+      redis:
+        condition: service_healthy
+        restart: true
+      prestart:
+        condition: service_completed_successfully
+    env_file:
+      - .env
+    environment:
+      - DOMAIN=${DOMAIN}
+      - FRONTEND_HOST=${FRONTEND_HOST?Variable not set}
+      - ENVIRONMENT=${ENVIRONMENT}
+      - BACKEND_CORS_ORIGINS=${BACKEND_CORS_ORIGINS}
+      - SECRET_KEY=${SECRET_KEY?Variable not set}
+      - FIRST_SUPERUSER=${FIRST_SUPERUSER?Variable not set}
+      - FIRST_SUPERUSER_PASSWORD=${FIRST_SUPERUSER_PASSWORD?Variable not set}
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - EMAILS_FROM_EMAIL=${EMAILS_FROM_EMAIL}
+      - POSTGRES_SERVER=db
+      - POSTGRES_PORT=${POSTGRES_PORT}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER?Variable not set}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD?Variable not set}
+      - SENTRY_DSN=${SENTRY_DSN}
+      - CELERY_BROKER_URL=redis://redis:6379/12
+      - CELERY_RESULT_BACKEND=redis://redis:6379/13
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    command: uv run celery -A app.core.celery.celery worker --loglevel=info
+
+  celery-beat:
+    image: '${DOCKER_IMAGE_BACKEND?Variable not set}:${TAG-latest}'
+    restart: always
+    networks:
+      - default
+    depends_on:
+      db:
+        condition: service_healthy
+        restart: true
+      redis:
+        condition: service_healthy
+        restart: true
+      prestart:
+        condition: service_completed_successfully
+      celery-worker:
+        condition: service_started
+    env_file:
+      - .env
+    environment:
+      - DOMAIN=${DOMAIN}
+      - FRONTEND_HOST=${FRONTEND_HOST?Variable not set}
+      - ENVIRONMENT=${ENVIRONMENT}
+      - BACKEND_CORS_ORIGINS=${BACKEND_CORS_ORIGINS}
+      - SECRET_KEY=${SECRET_KEY?Variable not set}
+      - FIRST_SUPERUSER=${FIRST_SUPERUSER?Variable not set}
+      - FIRST_SUPERUSER_PASSWORD=${FIRST_SUPERUSER_PASSWORD?Variable not set}
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - EMAILS_FROM_EMAIL=${EMAILS_FROM_EMAIL}
+      - POSTGRES_SERVER=db
+      - POSTGRES_PORT=${POSTGRES_PORT}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER?Variable not set}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD?Variable not set}
+      - SENTRY_DSN=${SENTRY_DSN}
+      - CELERY_BROKER_URL=redis://redis:6379/12
+      - CELERY_RESULT_BACKEND=redis://redis:6379/13
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    command: uv run celery -A app.core.celery.celery beat --loglevel=info
 
   frontend:
     image: '${DOCKER_IMAGE_FRONTEND?Variable not set}:${TAG-latest}'

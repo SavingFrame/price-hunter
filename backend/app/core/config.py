@@ -93,6 +93,8 @@ class Settings(BaseSettings):
     FIRST_SUPERUSER: EmailStr
     FIRST_SUPERUSER_PASSWORD: str
     RECEIPT_UPLOAD_DIR: str = "uploads/receipts"
+    CELERY_BROKER_URL: str = "redis://localhost:6379/12"
+    CELERY_RESULT_BACKEND: str = "redis://localhost:6379/13"
 
 
 settings = Settings()  # type: ignore
