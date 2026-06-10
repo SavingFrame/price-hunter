@@ -92,7 +92,7 @@ def test_kaufland_parser_normalizes_tab_delimited_columns():
     assert normalized.brand == "Ajax"
     assert normalized.net_quantity == Decimal("0.750")
     assert normalized.unit_of_measure == "KOM"
-    assert normalized.category == "SREDSTVA ZA ČIŠĆENJE"
+    assert normalized.category == "Sredstva za čišćenje"
     assert normalized.price_eur == Decimal("1.29")
     assert normalized.unit_price_eur == Decimal("1.72")
     assert normalized.is_special_sale is True
