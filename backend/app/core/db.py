@@ -1,5 +1,6 @@
 # ruff: noqa: F403, F405
 
+from sqlalchemy.ext.asyncio import create_async_engine
 from sqlmodel import Session, SQLModel, create_engine, select
 
 from app import crud
@@ -9,6 +10,7 @@ from app.models.retailer import ReailerEnum
 from app.models.user import UserCreate
 
 engine = create_engine(str(settings.SQLALCHEMY_DATABASE_URI))
+async_engine = create_async_engine(str(settings.SQLALCHEMY_DATABASE_URI))
 
 
 # make sure all SQLModel models are imported before initializing DB
@@ -44,7 +46,7 @@ def init_db(session: Session) -> None:
             password=settings.FIRST_SUPERUSER_PASSWORD,
             is_superuser=True,
         )
-        crud.create_user(session=session, user_create=user_in)
+        crud.create_user_sync(session=session, user_create=user_in)
     for retailer in ReailerEnum:
         get_or_create(
             session,
