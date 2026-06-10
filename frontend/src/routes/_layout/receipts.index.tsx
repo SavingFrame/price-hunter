@@ -41,7 +41,7 @@ export const Route = createFileRoute("/_layout/receipts/")({
   head: () => ({
     meta: [
       {
-        title: "Receipts - Shop Optimizer",
+        title: "Receipts - Cjenolovac",
       },
       {
         name: "description",

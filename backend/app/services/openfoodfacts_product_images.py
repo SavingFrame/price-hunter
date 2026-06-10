@@ -28,7 +28,7 @@ class ProductImageSyncResult:
 class OpenFoodFactsProductImageSyncer:
     def __init__(self) -> None:
         self.api = openfoodfacts.API(
-            user_agent=f"{settings.PROJECT_NAME}/0.1.0 (shop-optimizer product images)",
+            user_agent=f"{settings.PROJECT_NAME}/0.1.0 (price-hunter product images)",
         )
 
     def sync_missing_product_images(

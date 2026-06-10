@@ -32,7 +32,7 @@ function Layout() {
             </span>
             <div className="min-w-0 leading-tight">
               <p className="truncate font-semibold tracking-tight">
-                Shop Optimizer
+                Cjenolovac
               </p>
               <p className="hidden truncate text-xs text-muted-foreground xl:block">
                 Croatian grocery intelligence

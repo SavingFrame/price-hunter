@@ -32,7 +32,7 @@ export const Route = createFileRoute("/_layout/product-lists/")({
   head: () => ({
     meta: [
       {
-        title: "Product lists - Shop Optimizer",
+        title: "Product lists - Cjenolovac",
       },
       {
         name: "description",

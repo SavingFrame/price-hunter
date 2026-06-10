@@ -1,0 +1,35 @@
+# Git and local tooling
+.git
+.github
+.pi
+.vscode
+
+# Local env and data
+.env
+*.env
+app.db
+food.parquet
+
+# Python
+.venv
+backend/.venv
+__pycache__
+*.py[cod]
+.pytest_cache
+.ruff_cache
+.mypy_cache
+.coverage
+htmlcov
+backend/htmlcov
+
+# Node/Bun
+node_modules
+frontend/node_modules
+frontend/dist
+frontend/blob-report
+frontend/playwright-report
+frontend/test-results
+frontend/playwright/.cache
+
+# OS/editor noise
+.DS_Store

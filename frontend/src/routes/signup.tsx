@@ -58,7 +58,7 @@ export const Route = createFileRoute("/signup")({
   head: () => ({
     meta: [
       {
-        title: "Sign Up - Shop Optimizer",
+        title: "Sign Up - Cjenolovac",
       },
     ],
   }),
@@ -96,7 +96,7 @@ function SignUp() {
           <div className="space-y-2">
             <CardTitle className="text-2xl">Create your account</CardTitle>
             <CardDescription>
-              Join Shop Optimizer to save preferences and use account features
+              Join Cjenolovac to save preferences and use account features
               across sessions.
             </CardDescription>
           </div>

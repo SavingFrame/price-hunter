@@ -41,7 +41,7 @@ export function AuthLayout({ children }: AuthLayoutProps) {
             <ShoppingBasket className="size-5" />
           </span>
           <div>
-            <p className="font-semibold tracking-tight">Shop Optimizer</p>
+            <p className="font-semibold tracking-tight">Cjenolovac</p>
             <p className="text-xs text-muted-foreground">
               Croatian grocery intelligence
             </p>

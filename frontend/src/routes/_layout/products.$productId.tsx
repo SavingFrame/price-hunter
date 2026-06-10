@@ -53,7 +53,7 @@ export const Route = createFileRoute("/_layout/products/$productId")({
   head: () => ({
     meta: [
       {
-        title: "Product details - Shop Optimizer",
+        title: "Product details - Cjenolovac",
       },
     ],
   }),

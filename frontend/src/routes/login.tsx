@@ -51,7 +51,7 @@ export const Route = createFileRoute("/login")({
   head: () => ({
     meta: [
       {
-        title: "Log In - Shop Optimizer",
+        title: "Log In - Cjenolovac",
       },
     ],
   }),
@@ -151,7 +151,7 @@ function Login() {
               </div>
 
               <div className="rounded-2xl border bg-background/60 p-4 text-center text-sm text-muted-foreground">
-                New to Shop Optimizer?{" "}
+                New to Cjenolovac?{" "}
                 <RouterLink
                   to="/signup"
                   className="font-medium text-foreground underline underline-offset-4"

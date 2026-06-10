@@ -1,6 +1,6 @@
-# Shop Optimizer
+# Cjenolovac (Price Hunter)
 
-Shop Optimizer is an application for collecting grocery prices from Croatian shops and comparing them across stores.
+Cjenolovac ("price hunter" in Croatian) is an application for collecting grocery prices from Croatian shops and comparing them across stores.
 
 The goal is to make it easy to maintain a list of products, track their prices in different shops, and understand where a grocery basket is cheaper.
 

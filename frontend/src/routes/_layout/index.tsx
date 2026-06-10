@@ -33,7 +33,7 @@ export const Route = createFileRoute("/_layout/")({
   head: () => ({
     meta: [
       {
-        title: "Shop Optimizer dashboard",
+        title: "Cjenolovac dashboard",
       },
       {
         name: "description",
