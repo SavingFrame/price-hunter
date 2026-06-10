@@ -1,7 +1,6 @@
 from fastapi import APIRouter
 
 from app.api.routes import (
-    dashboard,
     private,
     product_lists,
     products,
@@ -10,6 +9,7 @@ from app.api.routes import (
 )
 from app.core.config import settings
 from app.domains.accounts.routes import login, users
+from app.domains.dashboard import routes as dashboard
 
 api_router = APIRouter()
 api_router.include_router(login.router)
