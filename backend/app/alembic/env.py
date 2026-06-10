@@ -20,7 +20,7 @@ fileConfig(config.config_file_name)
 from sqlmodel import SQLModel  # noqa
 
 from app.core.config import settings  # noqa
-import app.models  # noqa
+import app.domains.models  # noqa
 
 target_metadata = SQLModel.metadata
 

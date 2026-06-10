@@ -27,7 +27,7 @@ $ source .venv/bin/activate
 
 Make sure your editor is using the correct Python virtual environment, with the interpreter at `backend/.venv/bin/python`.
 
-Modify or add SQLModel models for data and SQL tables in `./backend/app/models.py`, API endpoints in `./backend/app/api/`, CRUD (Create, Read, Update, Delete) utils in `./backend/app/crud.py`.
+Modify or add backend code in `./backend/app/domains/`. Each domain owns its models, routes, schemas, and services. SQLModel table registration is centralized in `./backend/app/domains/models.py` for Alembic and test setup.
 
 ## VS Code
 
@@ -133,7 +133,7 @@ Make sure you create a "revision" of your models and that you "upgrade" your dat
 $ docker compose exec backend bash
 ```
 
-* Alembic is already configured to import your SQLModel models from `./backend/app/models.py`.
+* Alembic is already configured to import your SQLModel model registry from `./backend/app/domains/models.py`.
 
 * After changing a model (for example, adding a column), inside the container, create a revision, e.g.:
 
