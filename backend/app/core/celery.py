@@ -27,7 +27,7 @@ celery.conf.beat_schedule = {
     },
     "sync-product-images-every-2-week": {
         "task": "app.core.celery.sync_product_images",
-        "schedule": crontab(hour=7, minute=0, day_of_week="mon", week_of_month="1,3"),
+        "schedule": crontab(hour=7, minute=0, day_of_month="1,15"),
     },
 }
 
