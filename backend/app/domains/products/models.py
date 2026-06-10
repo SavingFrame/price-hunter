@@ -10,9 +10,9 @@ if TYPE_CHECKING:
         ProductListItemAlternative,
     )
     from app.domains.products.aliases import ProductAlias
+    from app.domains.products.price_observation import PriceObservation
+    from app.domains.products.price_observation_daily import PriceObservationDaily
     from app.domains.receipts.models import ReceiptItem
-    from app.models.price_observation import PriceObservation
-    from app.models.price_observation_daily import PriceObservationDaily
 
 
 class ProductBase(SQLModel):

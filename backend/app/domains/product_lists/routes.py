@@ -23,9 +23,9 @@ from app.domains.product_lists.models import (
     ProductListsPublic,
 )
 from app.domains.products.models import Product, ProductPublic
+from app.domains.products.price_observation import PriceObservation
+from app.domains.products.retailers import Retailer, RetailerPublic
 from app.domains.receipts.models import Receipt, ReceiptItem
-from app.models.price_observation import PriceObservation
-from app.models.retailer import Retailer, RetailerPublic
 
 router = APIRouter(prefix="/product-lists", tags=["product-lists"])
 

@@ -12,9 +12,9 @@ from app.domains.common.models import get_datetime_utc
 if TYPE_CHECKING:
     from app.domains.accounts.models import User
     from app.domains.products.models import Product
-    from app.models.price_observation import PriceObservation
-    from app.models.retailer import Retailer
-    from app.models.store import Store
+    from app.domains.products.price_observation import PriceObservation
+    from app.domains.products.retailers import Retailer
+    from app.domains.products.stores import Store
 
 
 class ReceiptStatus(str, enum.Enum):

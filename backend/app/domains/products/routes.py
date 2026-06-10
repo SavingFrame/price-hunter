@@ -11,11 +11,14 @@ from sqlmodel import SQLModel, func, select
 from app.api.deps import SessionDep
 from app.domains.products.aliases import ProductAlias
 from app.domains.products.models import Product, ProductPublic, ProductsPublic
+from app.domains.products.price_observation import (
+    PriceObservation,
+    PriceObservationPublic,
+)
+from app.domains.products.price_observation_daily import PriceObservationDaily
+from app.domains.products.retailers import Retailer, RetailerPublic
 from app.domains.products.services.similarity import product_similarity_service
-from app.models.price_observation import PriceObservation, PriceObservationPublic
-from app.models.price_observation_daily import PriceObservationDaily
-from app.models.retailer import Retailer, RetailerPublic
-from app.models.store import StorePublic
+from app.domains.products.stores import StorePublic
 
 router = APIRouter(prefix="/products", tags=["products"])
 

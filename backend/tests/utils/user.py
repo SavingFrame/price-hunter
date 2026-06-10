@@ -3,7 +3,7 @@ from sqlmodel import Session
 
 from app.core.config import settings
 from app.domains.accounts import service
-from app.models.user import User, UserCreate, UserUpdate
+from app.domains.accounts.models import User, UserCreate, UserUpdate
 from tests.utils.utils import random_email, random_lower_string
 
 

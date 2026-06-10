@@ -12,9 +12,9 @@ from sqlmodel import Session, select
 
 from app.domains.products.aliases import ProductAlias, ProductAliasSource
 from app.domains.products.models import Product
-from app.models.price_observation import PriceObservation
-from app.models.retailer import ReailerEnum
-from app.models.store import Store
+from app.domains.products.price_observation import PriceObservation
+from app.domains.products.retailers import ReailerEnum
+from app.domains.products.stores import Store
 
 logger = logging.getLogger(__name__)
 

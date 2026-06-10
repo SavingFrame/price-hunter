@@ -9,6 +9,7 @@ from sqlmodel import Session, select
 from app.core.db import engine
 from app.domains.products.aliases import ProductAlias, ProductAliasSource
 from app.domains.products.models import Product
+from app.domains.products.retailers import ReailerEnum
 from app.domains.products.services.price_csv_importer import (
     BaseRetailerPriceCsvParser,
     KauflandPriceCsvParser,
@@ -23,8 +24,7 @@ from app.domains.products.services.price_downloader import (
     SparPriceDownloader,
     StorePriceCsvNotFound,
 )
-from app.models.retailer import ReailerEnum
-from app.models.store import Store
+from app.domains.products.stores import Store
 
 logger = logging.getLogger(__name__)
 

@@ -5,10 +5,10 @@ from typing import TYPE_CHECKING
 from sqlmodel import Field, Relationship, SQLModel
 
 if TYPE_CHECKING:
+    from app.domains.products.price_observation import PriceObservation
+    from app.domains.products.price_observation_daily import PriceObservationDaily
+    from app.domains.products.stores import Store
     from app.domains.receipts.models import Receipt
-    from app.models.price_observation import PriceObservation
-    from app.models.price_observation_daily import PriceObservationDaily
-    from app.models.store import Store
 
 
 class RetailerBase(SQLModel):

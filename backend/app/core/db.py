@@ -6,8 +6,8 @@ from sqlmodel import Session, SQLModel, create_engine, select
 from app.core.config import settings
 from app.domains.accounts import service as accounts_service
 from app.domains.accounts.models import UserCreate
-from app.models import *  # noqa: F403
-from app.models.retailer import ReailerEnum
+from app.domains.models import *  # noqa: F403
+from app.domains.products.retailers import ReailerEnum
 
 engine = create_engine(str(settings.SQLALCHEMY_DATABASE_URI))
 async_engine = create_async_engine(str(settings.SQLALCHEMY_DATABASE_URI))

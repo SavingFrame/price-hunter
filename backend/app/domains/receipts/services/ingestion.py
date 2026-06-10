@@ -5,14 +5,14 @@ from fastapi import HTTPException
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.core.config import settings
+from app.domains.products.retailers import Retailer
+from app.domains.products.stores import Store
 from app.domains.receipts.models import Receipt, ReceiptItem, ReceiptStatus
 from app.domains.receipts.services.parser import (
     UnsupportedReceiptParserError,
     get_receipt_parser,
 )
 from app.domains.receipts.services.product_matcher import receipt_product_matcher
-from app.models.retailer import Retailer
-from app.models.store import Store
 
 
 class ReceiptIngestionService:

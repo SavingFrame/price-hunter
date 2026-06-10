@@ -5,9 +5,9 @@ from sqlalchemy import UniqueConstraint
 from sqlmodel import Field, Relationship, SQLModel
 
 if TYPE_CHECKING:
+    from app.domains.products.price_observation import PriceObservation
+    from app.domains.products.retailers import Retailer
     from app.domains.receipts.models import Receipt
-    from app.models.price_observation import PriceObservation
-    from app.models.retailer import Retailer
 
 
 class StoreBase(SQLModel):

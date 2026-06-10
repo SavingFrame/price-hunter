@@ -10,8 +10,8 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.domains.products.aliases import ProductAlias
 from app.domains.products.models import Product
-from app.models import PriceObservationDaily
-from app.models.retailer import Retailer
+from app.domains.products.price_observation_daily import PriceObservationDaily
+from app.domains.products.retailers import Retailer
 
 
 @dataclass(frozen=True)

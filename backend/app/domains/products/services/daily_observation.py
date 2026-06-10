@@ -3,8 +3,8 @@ from datetime import date
 from sqlalchemy.dialects.postgresql import insert
 from sqlmodel import Session, func, select
 
-from app.models import PriceObservationDaily
-from app.models.price_observation import PriceObservation
+from app.domains.products.price_observation import PriceObservation
+from app.domains.products.price_observation_daily import PriceObservationDaily
 
 
 class ObservationDailyCalculator:

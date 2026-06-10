@@ -8,7 +8,7 @@ from sqlmodel import Field, Relationship, SQLModel, UniqueConstraint, text
 
 if TYPE_CHECKING:
     from app.domains.products.models import Product
-    from app.models.retailer import Retailer
+    from app.domains.products.retailers import Retailer
 
 
 class PriceObservationDailyBase(SQLModel):

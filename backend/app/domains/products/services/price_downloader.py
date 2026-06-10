@@ -10,7 +10,7 @@ from urllib.parse import urljoin
 import httpx
 from pydantic import BaseModel, Field
 
-from app.models.store import Store
+from app.domains.products.stores import Store
 
 logger = logging.getLogger(__name__)
 

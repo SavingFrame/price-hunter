@@ -5,14 +5,14 @@ from sqlalchemy.pool import StaticPool
 from sqlmodel import Session, SQLModel, create_engine, select
 
 from app.domains.products.models import Product
+from app.domains.products.price_observation import PriceObservation
+from app.domains.products.retailers import ReailerEnum, Retailer
 from app.domains.products.services.price_csv_importer import (
     KauflandPriceCsvParser,
     LidlPriceCsvParser,
     PriceCsvImporter,
 )
-from app.models.price_observation import PriceObservation
-from app.models.retailer import ReailerEnum, Retailer
-from app.models.store import Store
+from app.domains.products.stores import Store
 
 
 def make_session() -> Session:

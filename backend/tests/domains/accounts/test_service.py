@@ -5,7 +5,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.core.security import verify_password
 from app.domains.accounts import service
-from app.models.user import User, UserCreate, UserUpdate
+from app.domains.accounts.models import User, UserCreate, UserUpdate
 from tests.utils.utils import random_email, random_lower_string
 
 
