@@ -77,13 +77,24 @@ class BaseRetailerPriceCsvParser:
             brand=self.clean(row.get(self.columns["brand"])),
             net_quantity=self.clean(row.get(self.columns["net_quantity"])),
             unit_of_measure=self.clean(row.get(self.columns["unit_of_measure"])),
-            category=self.clean(row.get(self.columns["category"])),
+            category=self._normalize_category(row.get(self.columns["category"])),
             price_eur=(
                 special_sale_price if special_sale_price is not None else retail_price
             ),
             unit_price_eur=unit_price,
             is_special_sale=special_sale_price is not None,
         )
+
+    def _normalize_category(self, value: str | None) -> str | None:
+        replacements = {
+            "Piće": "Pića",
+        }
+        value = self.clean(value)
+        if value is None:
+            return None
+        value = value.capitalize()
+        value = replacements.get(value, value)
+        return value
 
     @staticmethod
     def parse_decimal(value: Any) -> Decimal | None:

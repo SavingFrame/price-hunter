@@ -69,7 +69,16 @@ async def read_price_movers(session: SessionDep, limit: int = 10):
             (previous_prices.c.product_id == current_prices.c.product_id)
             & (previous_prices.c.retailer_id == current_prices.c.retailer_id),
         )
-        .where(previous_prices.c.previous_price_eur > 0)
+        .where(
+            previous_prices.c.previous_price_eur > 0,
+            Product.category.not_in(
+                [
+                    "Proizvodi Za Kućanstvo",
+                    "Sredstva Za Čišćenje",
+                    "Toaletne Potrepštine",
+                ]
+            ),
+        )
     )
 
     price_drops = (
