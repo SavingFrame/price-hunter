@@ -5,8 +5,8 @@ from fastapi import APIRouter
 from sqlmodel import SQLModel, select
 
 from app.api.deps import SessionDep
+from app.domains.products.models import Product, ProductPublic
 from app.models import PriceObservationDaily
-from app.models.product import Product, ProductPublic
 from app.models.retailer import Retailer, RetailerPublic
 
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])

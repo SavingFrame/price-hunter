@@ -7,7 +7,7 @@ from sqlalchemy import DateTime
 from sqlmodel import Field, Relationship, SQLModel
 
 if TYPE_CHECKING:
-    from app.models.product_list import ProductList
+    from app.domains.product_lists.models import ProductList
 
 from app.domains.common.models import get_datetime_utc
 

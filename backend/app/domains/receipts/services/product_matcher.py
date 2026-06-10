@@ -6,12 +6,12 @@ from sqlalchemy import select as sa_select
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from app.models.common import get_datetime_utc
+from app.domains.common.models import get_datetime_utc
+from app.domains.products.aliases import ProductAlias, ProductAliasSource
+from app.domains.products.models import Product
+from app.domains.receipts.models import ReceiptItem  # noqa: F401
+from app.domains.receipts.services.parser import ParsedReceiptItem
 from app.models.price_observation import PriceObservation
-from app.models.product import Product
-from app.models.product_alias import ProductAlias, ProductAliasSource
-from app.models.receipt import ReceiptItem  # noqa: F401
-from app.services.receipts.parser import ParsedReceiptItem
 
 
 class ReceiptProductMatcher:

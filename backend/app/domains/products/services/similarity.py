@@ -8,9 +8,9 @@ from sqlalchemy import select as sa_select
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+from app.domains.products.aliases import ProductAlias
+from app.domains.products.models import Product
 from app.models import PriceObservationDaily
-from app.models.product import Product
-from app.models.product_alias import ProductAlias
 from app.models.retailer import Retailer
 
 

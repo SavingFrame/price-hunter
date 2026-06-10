@@ -9,13 +9,13 @@ from sqlalchemy.orm import selectinload
 from sqlmodel import SQLModel, func, select
 
 from app.api.deps import SessionDep
+from app.domains.products.aliases import ProductAlias
+from app.domains.products.models import Product, ProductPublic, ProductsPublic
+from app.domains.products.services.similarity import product_similarity_service
 from app.models.price_observation import PriceObservation, PriceObservationPublic
 from app.models.price_observation_daily import PriceObservationDaily
-from app.models.product import Product, ProductPublic, ProductsPublic
-from app.models.product_alias import ProductAlias
 from app.models.retailer import Retailer, RetailerPublic
 from app.models.store import StorePublic
-from app.services.product_similarity import product_similarity_service
 
 router = APIRouter(prefix="/products", tags=["products"])
 

@@ -7,14 +7,14 @@ from typing import TYPE_CHECKING
 from sqlalchemy import Column, DateTime, Numeric, String, Text, UniqueConstraint
 from sqlmodel import Field, Relationship, SQLModel
 
-from app.models.common import get_datetime_utc
+from app.domains.common.models import get_datetime_utc
 
 if TYPE_CHECKING:
+    from app.domains.accounts.models import User
+    from app.domains.products.models import Product
     from app.models.price_observation import PriceObservation
-    from app.models.product import Product
     from app.models.retailer import Retailer
     from app.models.store import Store
-    from app.models.user import User
 
 
 class ReceiptStatus(str, enum.Enum):

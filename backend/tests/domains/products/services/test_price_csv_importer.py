@@ -4,15 +4,15 @@ from decimal import Decimal
 from sqlalchemy.pool import StaticPool
 from sqlmodel import Session, SQLModel, create_engine, select
 
-from app.models.price_observation import PriceObservation
-from app.models.product import Product
-from app.models.retailer import ReailerEnum, Retailer
-from app.models.store import Store
-from app.services.price_csv_importer import (
+from app.domains.products.models import Product
+from app.domains.products.services.price_csv_importer import (
     KauflandPriceCsvParser,
     LidlPriceCsvParser,
     PriceCsvImporter,
 )
+from app.models.price_observation import PriceObservation
+from app.models.retailer import ReailerEnum, Retailer
+from app.models.store import Store
 
 
 def make_session() -> Session:

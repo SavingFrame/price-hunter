@@ -1,16 +1,16 @@
 """SQLModel table registry."""
 
 from app.domains.accounts.models import User
-from app.models.price_observation import PriceObservation
-from app.models.price_observation_daily import PriceObservationDaily
-from app.models.product import Product
-from app.models.product_alias import ProductAlias
-from app.models.product_list import (
+from app.domains.product_lists.models import (
     ProductList,
     ProductListItem,
     ProductListItemAlternative,
 )
-from app.models.receipt import Receipt, ReceiptItem
+from app.domains.products.aliases import ProductAlias
+from app.domains.products.models import Product
+from app.domains.receipts.models import Receipt, ReceiptItem
+from app.models.price_observation import PriceObservation
+from app.models.price_observation_daily import PriceObservationDaily
 from app.models.retailer import Retailer
 from app.models.store import Store
 

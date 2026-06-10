@@ -6,8 +6,8 @@ import openfoodfacts
 from sqlmodel import Session, select
 
 from app.core.config import settings
+from app.domains.products.models import Product
 from app.models.price_observation import PriceObservation  # noqa: F401
-from app.models.product import Product
 from app.models.retailer import Retailer  # noqa: F401
 from app.models.store import Store  # noqa: F401
 

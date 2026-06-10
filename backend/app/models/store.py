@@ -5,8 +5,8 @@ from sqlalchemy import UniqueConstraint
 from sqlmodel import Field, Relationship, SQLModel
 
 if TYPE_CHECKING:
+    from app.domains.receipts.models import Receipt
     from app.models.price_observation import PriceObservation
-    from app.models.receipt import Receipt
     from app.models.retailer import Retailer
 
 

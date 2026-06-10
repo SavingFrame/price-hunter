@@ -8,15 +8,15 @@ from sqlmodel import SQLModel, delete, func, select
 
 from app.api.deps import CurrentUser, SessionDep
 from app.core.config import settings
-from app.models.product import Product, ProductPublic
-from app.models.receipt import (
+from app.domains.products.models import Product, ProductPublic
+from app.domains.receipts.models import (
     Receipt,
     ReceiptItem,
     ReceiptItemPublic,
     ReceiptPublic,
     ReceiptStatus,
 )
-from app.services.receipts.ingestion import receipt_ingestion_service
+from app.domains.receipts.services.ingestion import receipt_ingestion_service
 
 router = APIRouter(prefix="/receipts", tags=["receipts"])
 

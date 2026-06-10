@@ -7,7 +7,7 @@ import httpx
 from psycopg import sql
 from sqlmodel import Column, Session, SQLModel, String, Table, func, select, update
 
-from app.models import Product
+from app.domains.products.models import Product
 
 
 class S3ImageSyncer:

@@ -7,24 +7,24 @@ from sqlalchemy import case, update
 from sqlmodel import Session, select
 
 from app.core.db import engine
-from app.models.product import Product
-from app.models.product_alias import ProductAlias, ProductAliasSource
-from app.models.retailer import ReailerEnum
-from app.models.store import Store
-from app.services.price_csv_importer import (
+from app.domains.products.aliases import ProductAlias, ProductAliasSource
+from app.domains.products.models import Product
+from app.domains.products.services.price_csv_importer import (
     BaseRetailerPriceCsvParser,
     KauflandPriceCsvParser,
     LidlPriceCsvParser,
     PriceCsvImporter,
     SparPriceCsvParser,
 )
-from app.services.price_downloader import (
+from app.domains.products.services.price_downloader import (
     BasePriceDownloader,
     KauflandPriceDownloader,
     LidlPriceDownloader,
     SparPriceDownloader,
     StorePriceCsvNotFound,
 )
+from app.models.retailer import ReailerEnum
+from app.models.store import Store
 
 logger = logging.getLogger(__name__)
 

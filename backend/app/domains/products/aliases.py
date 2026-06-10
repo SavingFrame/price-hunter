@@ -7,10 +7,10 @@ from typing import TYPE_CHECKING
 from sqlalchemy import Column, DateTime, Index, Numeric, String
 from sqlmodel import Field, Relationship, SQLModel
 
-from app.models.common import get_datetime_utc
+from app.domains.common.models import get_datetime_utc
 
 if TYPE_CHECKING:
-    from app.models.product import Product
+    from app.domains.products.models import Product
     from app.models.retailer import Retailer
 
 

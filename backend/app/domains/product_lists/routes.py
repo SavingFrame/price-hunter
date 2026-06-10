@@ -9,10 +9,8 @@ from sqlalchemy.orm import selectinload
 from sqlmodel import Field, SQLModel, delete, func, select
 
 from app.api.deps import CurrentUser, SessionDep
-from app.models.common import get_datetime_utc
-from app.models.price_observation import PriceObservation
-from app.models.product import Product, ProductPublic
-from app.models.product_list import (
+from app.domains.common.models import get_datetime_utc
+from app.domains.product_lists.models import (
     ProductList,
     ProductListBase,
     ProductListItem,
@@ -24,7 +22,9 @@ from app.models.product_list import (
     ProductListPublic,
     ProductListsPublic,
 )
-from app.models.receipt import Receipt, ReceiptItem
+from app.domains.products.models import Product, ProductPublic
+from app.domains.receipts.models import Receipt, ReceiptItem
+from app.models.price_observation import PriceObservation
 from app.models.retailer import Retailer, RetailerPublic
 
 router = APIRouter(prefix="/product-lists", tags=["product-lists"])

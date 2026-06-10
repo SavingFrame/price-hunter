@@ -7,8 +7,8 @@ from sqlalchemy import Boolean, Column, Index, Numeric, UniqueConstraint
 from sqlmodel import Field, Relationship, SQLModel
 
 if TYPE_CHECKING:
-    from app.models.product import Product
-    from app.models.receipt import ReceiptItem
+    from app.domains.products.models import Product
+    from app.domains.receipts.models import ReceiptItem
     from app.models.retailer import Retailer
     from app.models.store import Store
 

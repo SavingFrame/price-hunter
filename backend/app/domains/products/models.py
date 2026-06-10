@@ -5,11 +5,14 @@ from typing import TYPE_CHECKING
 from sqlmodel import Field, Relationship, SQLModel
 
 if TYPE_CHECKING:
+    from app.domains.product_lists.models import (
+        ProductListItem,
+        ProductListItemAlternative,
+    )
+    from app.domains.products.aliases import ProductAlias
+    from app.domains.receipts.models import ReceiptItem
     from app.models.price_observation import PriceObservation
     from app.models.price_observation_daily import PriceObservationDaily
-    from app.models.product_alias import ProductAlias
-    from app.models.product_list import ProductListItem, ProductListItemAlternative
-    from app.models.receipt import ReceiptItem
 
 
 class ProductBase(SQLModel):

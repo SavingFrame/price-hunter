@@ -8,9 +8,9 @@ from sqlmodel import Session
 
 from app.core.config import settings
 from app.core.db import engine
-from app.services.daily_observation_service import ObservationDailyCalculator
-from app.services.open_food_facts.s3_image_syncer import S3ImageSyncer
-from app.services.price_csv_import_job import PriceCsvImportJob
+from app.domains.products.services.daily_observation import ObservationDailyCalculator
+from app.domains.products.services.open_food_facts.s3_image_syncer import S3ImageSyncer
+from app.domains.products.services.price_csv_import_job import PriceCsvImportJob
 
 logger = logging.getLogger(__name__)
 

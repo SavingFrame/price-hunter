@@ -1,15 +1,15 @@
 import httpx
 import pytest
 
-from app.models.retailer import ReailerEnum
-from app.models.store import Store
-from app.services import price_downloader
-from app.services.price_downloader import (
+from app.domains.products.services import price_downloader
+from app.domains.products.services.price_downloader import (
     KauflandPriceDownloader,
     LidlPriceArchive,
     LidlPriceDownloader,
     StorePriceCsvNotFound,
 )
+from app.models.retailer import ReailerEnum
+from app.models.store import Store
 
 
 def make_kaufland_store() -> Store:

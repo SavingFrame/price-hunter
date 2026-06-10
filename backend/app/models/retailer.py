@@ -5,9 +5,9 @@ from typing import TYPE_CHECKING
 from sqlmodel import Field, Relationship, SQLModel
 
 if TYPE_CHECKING:
+    from app.domains.receipts.models import Receipt
     from app.models.price_observation import PriceObservation
     from app.models.price_observation_daily import PriceObservationDaily
-    from app.models.receipt import Receipt
     from app.models.store import Store
 
 

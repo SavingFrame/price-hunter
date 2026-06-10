@@ -10,9 +10,9 @@ from sqlalchemy import func
 from sqlalchemy.dialects.postgresql import insert
 from sqlmodel import Session, select
 
+from app.domains.products.aliases import ProductAlias, ProductAliasSource
+from app.domains.products.models import Product
 from app.models.price_observation import PriceObservation
-from app.models.product import Product
-from app.models.product_alias import ProductAlias, ProductAliasSource
 from app.models.retailer import ReailerEnum
 from app.models.store import Store
 
