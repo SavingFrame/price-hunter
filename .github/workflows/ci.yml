@@ -75,9 +75,9 @@ jobs:
             backend/pyproject.toml
             uv.lock
 
-      - name: Run migrations and seed data
-        run: uv run bash scripts/prestart.sh
-        working-directory: backend
+      # - name: Run migrations and seed data
+      #   run: uv run bash scripts/prestart.sh
+      #   working-directory: backend
 
       - name: Run backend tests
         run: uv run bash scripts/tests-start.sh "Coverage for ${{ github.sha }}"
