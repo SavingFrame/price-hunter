@@ -2,7 +2,7 @@ import uuid
 from pathlib import Path
 
 from fastapi import HTTPException
-from sqlmodel import Session
+from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.core.config import settings
 from app.models.receipt import Receipt, ReceiptItem, ReceiptStatus
@@ -18,19 +18,19 @@ from app.services.receipts.product_matcher import receipt_product_matcher
 class ReceiptIngestionService:
     async def create_receipt_from_upload(
         self,
-        session: Session,
+        session: AsyncSession,
         user_id: uuid.UUID,
         retailer_id: uuid.UUID,
         store_id: uuid.UUID | None,
         filename: str | None,
         content: bytes,
     ) -> Receipt:
-        retailer = self._get_retailer(session, retailer_id)
+        retailer = await self._get_retailer(session, retailer_id)
         try:
             parser = get_receipt_parser(retailer.name)
         except UnsupportedReceiptParserError as error:
             raise HTTPException(status_code=400, detail=str(error)) from error
-        self._validate_store(session, retailer.id, store_id)
+        await self._validate_store(session, retailer.id, store_id)
 
         parsed_receipt = await parser.parse(content)
         file_key = self._store_receipt_file(content=content, filename=filename)
@@ -46,16 +46,17 @@ class ReceiptIngestionService:
             raw_text=parsed_receipt.raw_text,
         )
         session.add(receipt)
+        await session.flush()
 
         receipt_items: list[ReceiptItem] = []
         for parsed_item in parsed_receipt.items:
-            product = receipt_product_matcher.find_matching_product(
+            product = await receipt_product_matcher.find_matching_product(
                 session,
                 retailer.id,
                 parsed_item,
             )
             if product is not None:
-                receipt_product_matcher.create_or_update_product_alias(
+                await receipt_product_matcher.create_or_update_product_alias(
                     session=session,
                     retailer_id=retailer.id,
                     parsed_item=parsed_item,
@@ -76,25 +77,27 @@ class ReceiptIngestionService:
             )
 
         session.add_all(receipt_items)
-        session.commit()
-        session.refresh(receipt)
+        await session.commit()
+        await session.refresh(receipt)
         return receipt
 
-    def _get_retailer(self, session: Session, retailer_id: uuid.UUID) -> Retailer:
-        retailer = session.get(Retailer, retailer_id)
+    async def _get_retailer(
+        self, session: AsyncSession, retailer_id: uuid.UUID
+    ) -> Retailer:
+        retailer = await session.get(Retailer, retailer_id)
         if retailer is None:
             raise HTTPException(status_code=404, detail="Retailer not found")
         return retailer
 
-    def _validate_store(
+    async def _validate_store(
         self,
-        session: Session,
+        session: AsyncSession,
         retailer_id: uuid.UUID,
         store_id: uuid.UUID | None,
     ) -> None:
         if store_id is None:
             return
-        store = session.get(Store, store_id)
+        store = await session.get(Store, store_id)
         if store is None or store.retailer_id != retailer_id:
             raise HTTPException(status_code=400, detail="Invalid store for retailer")
 

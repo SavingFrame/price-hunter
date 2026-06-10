@@ -5,6 +5,7 @@ from typing import Literal
 
 from fastapi import APIRouter, HTTPException, status
 from sqlalchemy import case, literal, nullslast, true
+from sqlalchemy.orm import selectinload
 from sqlmodel import Field, SQLModel, delete, func, select
 
 from app.api.deps import CurrentUser, SessionDep
@@ -75,17 +76,17 @@ class ProductListRetailerPriceHistoryPoint(SQLModel):
 
 
 @router.post("", response_model=ProductListPublic)
-def create_product_list(
+async def create_product_list(
     list_in: ProductListBase,
     session: SessionDep,
     current_user: CurrentUser,
 ) -> ProductList:
-    existing_list = session.exec(
+    existing_list = (await session.exec(
         select(ProductList).where(
             ProductList.user_id == current_user.id,
             ProductList.name == list_in.name,
         )
-    ).first()
+    )).first()
     if existing_list is not None:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -98,40 +99,40 @@ def create_product_list(
         description=list_in.description,
     )
     session.add(product_list)
-    session.commit()
-    session.refresh(product_list)
+    await session.commit()
+    await session.refresh(product_list)
     return product_list
 
 
 @router.post("/from-receipt/{receipt_id}", response_model=ProductListPublic)
-def create_product_list_from_receipt(
+async def create_product_list_from_receipt(
     receipt_id: uuid.UUID,
     list_in: ProductListBase,
     session: SessionDep,
     current_user: CurrentUser,
 ) -> ProductList:
-    receipt = session.exec(
+    receipt = (await session.exec(
         select(Receipt).where(
             Receipt.id == receipt_id,
             Receipt.user_id == current_user.id,
         )
-    ).first()
+    )).first()
     if receipt is None:
         raise HTTPException(status_code=404, detail="Receipt not found")
 
-    existing_list = session.exec(
+    existing_list = (await session.exec(
         select(ProductList).where(
             ProductList.user_id == current_user.id,
             ProductList.name == list_in.name,
         )
-    ).first()
+    )).first()
     if existing_list is not None:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="Product list with this name already exists",
         )
 
-    receipt_items = session.exec(
+    receipt_items = (await session.exec(
         select(ReceiptItem)
         .where(
             ReceiptItem.receipt_id == receipt.id,
@@ -139,7 +140,7 @@ def create_product_list_from_receipt(
             ReceiptItem.product_id.is_not(None),
         )
         .order_by(ReceiptItem.line_number)
-    ).all()
+    )).all()
     if not receipt_items:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -160,7 +161,7 @@ def create_product_list_from_receipt(
         description=list_in.description,
     )
     session.add(product_list)
-    session.flush()
+    await session.flush()
 
     for product_id, quantity in quantities.items():
         session.add(
@@ -171,92 +172,92 @@ def create_product_list_from_receipt(
             )
         )
 
-    session.commit()
-    session.refresh(product_list)
+    await session.commit()
+    await session.refresh(product_list)
     return product_list
 
 
 @router.get("", response_model=ProductListsPublic)
-def read_product_lists(
+async def read_product_lists(
     session: SessionDep,
     current_user: CurrentUser,
     skip: int = 0,
     limit: int = 100,
 ) -> ProductListsPublic:
-    count = session.exec(
+    count = (await session.exec(
         select(func.count())
         .select_from(ProductList)
         .where(ProductList.user_id == current_user.id)
-    ).one()
-    product_lists = session.exec(
+    )).one()
+    product_lists = (await session.exec(
         select(ProductList)
         .where(ProductList.user_id == current_user.id)
         .order_by(ProductList.created_at.desc())
         .offset(skip)
         .limit(limit)
-    ).all()
+    )).all()
 
     return ProductListsPublic(data=product_lists, count=count)
 
 
 @router.get("/{product_list_id}", response_model=ProductListPublic)
-def read_product_list(
+async def read_product_list(
     product_list_id: uuid.UUID,
     session: SessionDep,
     current_user: CurrentUser,
 ) -> ProductList:
-    return _get_user_product_list(session, current_user.id, product_list_id)
+    return await _get_user_product_list(session, current_user.id, product_list_id)
 
 
 @router.patch("/{product_list_id}", response_model=ProductListPublic)
-def update_product_list(
+async def update_product_list(
     product_list_id: uuid.UUID,
     list_in: ProductListUpdate,
     session: SessionDep,
     current_user: CurrentUser,
 ) -> ProductList:
-    product_list = _get_user_product_list(session, current_user.id, product_list_id)
+    product_list = await _get_user_product_list(session, current_user.id, product_list_id)
     update_data = list_in.model_dump(exclude_unset=True)
     product_list.sqlmodel_update(update_data)
     product_list.updated_at = get_datetime_utc()
     session.add(product_list)
-    session.commit()
-    session.refresh(product_list)
+    await session.commit()
+    await session.refresh(product_list)
     return product_list
 
 
 @router.delete("/{product_list_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_product_list(
+async def delete_product_list(
     product_list_id: uuid.UUID,
     session: SessionDep,
     current_user: CurrentUser,
 ) -> None:
-    product_list = _get_user_product_list(session, current_user.id, product_list_id)
-    session.exec(
+    product_list = await _get_user_product_list(session, current_user.id, product_list_id)
+    await session.exec(
         delete(ProductListItem).where(
             ProductListItem.product_list_id == product_list.id,
         )
     )
-    session.delete(product_list)
-    session.commit()
+    await session.delete(product_list)
+    await session.commit()
 
 
 @router.get(
     "/{product_list_id}/price-history/retail/chart",
     response_model=list[ProductListRetailerPriceHistoryPoint],
 )
-def product_list_retail_price_history_chart(
+async def product_list_retail_price_history_chart(
     product_list_id: uuid.UUID,
     session: SessionDep,
     current_user: CurrentUser,
     alternative_fallback_order: Literal["cheapest", "similar"] = "cheapest",
 ) -> list[ProductListRetailerPriceHistoryPoint]:
-    product_list = _get_user_product_list(session, current_user.id, product_list_id)
-    total_item_count = session.exec(
+    product_list = await _get_user_product_list(session, current_user.id, product_list_id)
+    total_item_count = (await session.exec(
         select(func.count())
         .select_from(ProductListItem)
         .where(ProductListItem.product_list_id == product_list.id)
-    ).one()
+    )).one()
     if total_item_count == 0:
         return []
 
@@ -432,7 +433,7 @@ def product_list_retail_price_history_chart(
         .order_by(best_matches.c.observed_date, Retailer.name)
     )
 
-    rows = session.exec(statement).all()
+    rows = (await session.exec(statement)).all()
     return [
         ProductListRetailerPriceHistoryPoint(
             retailer=retailer,
@@ -457,36 +458,36 @@ def product_list_retail_price_history_chart(
     "/{product_list_id}/items",
     response_model=list[ProductListItemDetailPublic],
 )
-def read_product_list_items(
+async def read_product_list_items(
     product_list_id: uuid.UUID,
     session: SessionDep,
     current_user: CurrentUser,
 ) -> list[ProductListItem]:
-    product_list = _get_user_product_list(session, current_user.id, product_list_id)
-    return _get_product_list_items(session, product_list.id)
+    product_list = await _get_user_product_list(session, current_user.id, product_list_id)
+    return await _get_product_list_items(session, product_list.id)
 
 
 @router.post(
     "/{product_list_id}/items",
     response_model=ProductListItemDetailPublic,
 )
-def create_product_list_item(
+async def create_product_list_item(
     product_list_id: uuid.UUID,
     item_in: ProductListItemCreate,
     session: SessionDep,
     current_user: CurrentUser,
 ) -> ProductListItem:
-    product_list = _get_user_product_list(session, current_user.id, product_list_id)
-    product = session.get(Product, item_in.product_id)
+    product_list = await _get_user_product_list(session, current_user.id, product_list_id)
+    product = await session.get(Product, item_in.product_id)
     if product is None:
         raise HTTPException(status_code=404, detail="Product not found")
 
-    existing_item = session.exec(
+    existing_item = (await session.exec(
         select(ProductListItem).where(
             ProductListItem.product_list_id == product_list.id,
             ProductListItem.product_id == product.id,
         )
-    ).first()
+    )).first()
     if existing_item is not None:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -500,85 +501,83 @@ def create_product_list_item(
         note=item_in.note,
     )
     session.add(item)
-    session.commit()
-    session.refresh(item)
-    return item
+    await session.commit()
+    return await _get_product_list_item(session, product_list.id, item.id)
 
 
 @router.patch(
     "/{product_list_id}/items/{item_id}",
     response_model=ProductListItemDetailPublic,
 )
-def update_product_list_item(
+async def update_product_list_item(
     product_list_id: uuid.UUID,
     item_id: uuid.UUID,
     item_in: ProductListItemUpdate,
     session: SessionDep,
     current_user: CurrentUser,
 ) -> ProductListItem:
-    product_list = _get_user_product_list(session, current_user.id, product_list_id)
-    item = _get_product_list_item(session, product_list.id, item_id)
+    product_list = await _get_user_product_list(session, current_user.id, product_list_id)
+    item = await _get_product_list_item(session, product_list.id, item_id)
 
     update_data = item_in.model_dump(exclude_unset=True)
     item.sqlmodel_update(update_data)
     item.updated_at = get_datetime_utc()
 
     session.add(item)
-    session.commit()
-    session.refresh(item)
-    return item
+    await session.commit()
+    return await _get_product_list_item(session, product_list.id, item.id)
 
 
 @router.delete(
     "/{product_list_id}/items/{item_id}",
     status_code=status.HTTP_204_NO_CONTENT,
 )
-def delete_product_list_item(
+async def delete_product_list_item(
     product_list_id: uuid.UUID,
     item_id: uuid.UUID,
     session: SessionDep,
     current_user: CurrentUser,
 ) -> None:
-    product_list = _get_user_product_list(session, current_user.id, product_list_id)
-    item = _get_product_list_item(session, product_list.id, item_id)
-    session.exec(
+    product_list = await _get_user_product_list(session, current_user.id, product_list_id)
+    item = await _get_product_list_item(session, product_list.id, item_id)
+    await session.exec(
         delete(ProductListItemAlternative).where(
             ProductListItemAlternative.product_list_item_id == item.id,
         ),
     )
-    session.delete(item)
-    session.commit()
+    await session.delete(item)
+    await session.commit()
 
 
 @router.get(
     "/{product_list_id}/items/{item_id}/alternatives",
     response_model=list[ProductListItemAlternativeDetailPublic],
 )
-def read_product_list_item_alternatives(
+async def read_product_list_item_alternatives(
     product_list_id: uuid.UUID,
     item_id: uuid.UUID,
     session: SessionDep,
     current_user: CurrentUser,
 ) -> list[ProductListItemAlternative]:
-    product_list = _get_user_product_list(session, current_user.id, product_list_id)
-    item = _get_product_list_item(session, product_list.id, item_id)
-    return _get_product_list_item_alternatives(session, item.id)
+    product_list = await _get_user_product_list(session, current_user.id, product_list_id)
+    item = await _get_product_list_item(session, product_list.id, item_id)
+    return await _get_product_list_item_alternatives(session, item.id)
 
 
 @router.post(
     "/{product_list_id}/items/{item_id}/alternatives",
     response_model=ProductListItemAlternativeDetailPublic,
 )
-def create_product_list_item_alternative(
+async def create_product_list_item_alternative(
     product_list_id: uuid.UUID,
     item_id: uuid.UUID,
     alternative_in: ProductListItemAlternativeCreate,
     session: SessionDep,
     current_user: CurrentUser,
 ) -> ProductListItemAlternative:
-    product_list = _get_user_product_list(session, current_user.id, product_list_id)
-    item = _get_product_list_item(session, product_list.id, item_id)
-    product = session.get(Product, alternative_in.product_id)
+    product_list = await _get_user_product_list(session, current_user.id, product_list_id)
+    item = await _get_product_list_item(session, product_list.id, item_id)
+    product = await session.get(Product, alternative_in.product_id)
     if product is None:
         raise HTTPException(status_code=404, detail="Product not found")
     if product.id == item.product_id:
@@ -587,12 +586,12 @@ def create_product_list_item_alternative(
             detail="Primary product cannot be added as an alternative",
         )
 
-    existing_alternative = session.exec(
+    existing_alternative = (await session.exec(
         select(ProductListItemAlternative).where(
             ProductListItemAlternative.product_list_item_id == item.id,
             ProductListItemAlternative.product_id == product.id,
         ),
-    ).first()
+    )).first()
     if existing_alternative is not None:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -605,37 +604,36 @@ def create_product_list_item_alternative(
         similarity_score=alternative_in.similarity_score,
     )
     session.add(alternative)
-    session.commit()
-    session.refresh(alternative)
-    return alternative
+    await session.commit()
+    return await _get_product_list_item_alternative(session, item.id, alternative.id)
 
 
 @router.post(
     "/{product_list_id}/items/{item_id}/alternatives/bulk",
     response_model=ProductListItemAlternativesBulkCreateResult,
 )
-def bulk_create_product_list_item_alternatives(
+async def bulk_create_product_list_item_alternatives(
     product_list_id: uuid.UUID,
     item_id: uuid.UUID,
     alternatives_in: ProductListItemAlternativesBulkCreate,
     session: SessionDep,
     current_user: CurrentUser,
 ) -> ProductListItemAlternativesBulkCreateResult:
-    product_list = _get_user_product_list(session, current_user.id, product_list_id)
-    item = _get_product_list_item(session, product_list.id, item_id)
+    product_list = await _get_user_product_list(session, current_user.id, product_list_id)
+    item = await _get_product_list_item(session, product_list.id, item_id)
 
     requested_product_ids = list(dict.fromkeys(alternatives_in.product_ids))
     if not requested_product_ids:
         return ProductListItemAlternativesBulkCreateResult(
-            data=_get_product_list_item_alternatives(session, item.id),
+            data=await _get_product_list_item_alternatives(session, item.id),
             created_count=0,
             skipped_count=0,
         )
 
     existing_product_ids = set(
-        session.exec(
+        (await session.exec(
             select(Product.id).where(Product.id.in_(requested_product_ids)),
-        ).all(),
+        )).all(),
     )
     missing_product_ids = set(requested_product_ids) - existing_product_ids
     if missing_product_ids:
@@ -645,12 +643,12 @@ def bulk_create_product_list_item_alternatives(
         )
 
     existing_alternative_product_ids = set(
-        session.exec(
+        (await session.exec(
             select(ProductListItemAlternative.product_id).where(
                 ProductListItemAlternative.product_list_item_id == item.id,
                 ProductListItemAlternative.product_id.in_(requested_product_ids),
             ),
-        ).all(),
+        )).all(),
     )
     product_ids_to_create = [
         product_id
@@ -668,10 +666,10 @@ def bulk_create_product_list_item_alternatives(
             ),
         )
 
-    session.commit()
+    await session.commit()
 
     return ProductListItemAlternativesBulkCreateResult(
-        data=_get_product_list_item_alternatives(session, item.id),
+        data=await _get_product_list_item_alternatives(session, item.id),
         created_count=len(product_ids_to_create),
         skipped_count=len(requested_product_ids) - len(product_ids_to_create),
     )
@@ -681,67 +679,76 @@ def bulk_create_product_list_item_alternatives(
     "/{product_list_id}/items/{item_id}/alternatives/{alternative_id}",
     status_code=status.HTTP_204_NO_CONTENT,
 )
-def delete_product_list_item_alternative(
+async def delete_product_list_item_alternative(
     product_list_id: uuid.UUID,
     item_id: uuid.UUID,
     alternative_id: uuid.UUID,
     session: SessionDep,
     current_user: CurrentUser,
 ) -> None:
-    product_list = _get_user_product_list(session, current_user.id, product_list_id)
-    item = _get_product_list_item(session, product_list.id, item_id)
-    alternative = _get_product_list_item_alternative(
+    product_list = await _get_user_product_list(session, current_user.id, product_list_id)
+    item = await _get_product_list_item(session, product_list.id, item_id)
+    alternative = await _get_product_list_item_alternative(
         session,
         item.id,
         alternative_id,
     )
-    session.delete(alternative)
-    session.commit()
+    await session.delete(alternative)
+    await session.commit()
 
 
-def _get_user_product_list(
+async def _get_user_product_list(
     session: SessionDep,
     user_id: uuid.UUID,
     product_list_id: uuid.UUID,
 ) -> ProductList:
-    product_list = session.exec(
+    product_list = (await session.exec(
         select(ProductList).where(
             ProductList.id == product_list_id,
             ProductList.user_id == user_id,
         )
-    ).first()
+    )).first()
     if product_list is None:
         raise HTTPException(status_code=404, detail="Product list not found")
     return product_list
 
 
-def _get_product_list_item(
+async def _get_product_list_item(
     session: SessionDep,
     product_list_id: uuid.UUID,
     item_id: uuid.UUID,
 ) -> ProductListItem:
-    item = session.exec(
-        select(ProductListItem).where(
+    item = (await session.exec(
+        select(ProductListItem)
+        .options(
+            selectinload(ProductListItem.product),
+            selectinload(ProductListItem.alternatives).selectinload(
+                ProductListItemAlternative.product
+            ),
+        )
+        .where(
             ProductListItem.id == item_id,
             ProductListItem.product_list_id == product_list_id,
         )
-    ).first()
+    )).first()
     if item is None:
         raise HTTPException(status_code=404, detail="Product list item not found")
     return item
 
 
-def _get_product_list_item_alternative(
+async def _get_product_list_item_alternative(
     session: SessionDep,
     product_list_item_id: uuid.UUID,
     alternative_id: uuid.UUID,
 ) -> ProductListItemAlternative:
-    alternative = session.exec(
-        select(ProductListItemAlternative).where(
+    alternative = (await session.exec(
+        select(ProductListItemAlternative)
+        .options(selectinload(ProductListItemAlternative.product))
+        .where(
             ProductListItemAlternative.id == alternative_id,
             ProductListItemAlternative.product_list_item_id == product_list_item_id,
         ),
-    ).first()
+    )).first()
     if alternative is None:
         raise HTTPException(
             status_code=404, detail="Product list item alternative not found"
@@ -749,31 +756,38 @@ def _get_product_list_item_alternative(
     return alternative
 
 
-def _get_product_list_item_alternatives(
+async def _get_product_list_item_alternatives(
     session: SessionDep,
     product_list_item_id: uuid.UUID,
 ) -> list[ProductListItemAlternative]:
     return list(
-        session.exec(
+        (await session.exec(
             select(ProductListItemAlternative)
+            .options(selectinload(ProductListItemAlternative.product))
             .where(
                 ProductListItemAlternative.product_list_item_id == product_list_item_id
             )
             .order_by(
                 ProductListItemAlternative.created_at, ProductListItemAlternative.id
             ),
-        ).all()
+        )).all()
     )
 
 
-def _get_product_list_items(
+async def _get_product_list_items(
     session: SessionDep,
     product_list_id: uuid.UUID,
 ) -> list[ProductListItem]:
     return list(
-        session.exec(
+        (await session.exec(
             select(ProductListItem)
+            .options(
+                selectinload(ProductListItem.product),
+                selectinload(ProductListItem.alternatives).selectinload(
+                    ProductListItemAlternative.product
+                ),
+            )
             .where(ProductListItem.product_list_id == product_list_id)
             .order_by(ProductListItem.created_at, ProductListItem.id)
-        ).all()
+        )).all()
     )

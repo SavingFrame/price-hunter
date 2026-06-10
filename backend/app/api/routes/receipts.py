@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile, status
+from sqlalchemy.orm import selectinload
 from sqlmodel import SQLModel, delete, func, select
 
 from app.api.deps import CurrentUser, SessionDep
@@ -58,7 +59,7 @@ async def create_receipt(
 
 
 @router.get("", response_model=ReceiptsPublic)
-def read_receipts(
+async def read_receipts(
     session: SessionDep,
     current_user: CurrentUser,
     skip: int = 0,
@@ -71,7 +72,7 @@ def read_receipts(
             Receipt.user_id == current_user.id,
         )
     )
-    count = session.exec(count_statement).one()
+    count = (await session.exec(count_statement)).one()
 
     statement = (
         select(Receipt)
@@ -80,31 +81,31 @@ def read_receipts(
         .offset(skip)
         .limit(limit)
     )
-    receipts = session.exec(statement).all()
+    receipts = (await session.exec(statement)).all()
     return ReceiptsPublic(data=receipts, count=count)
 
 
 @router.get("/{receipt_id}", response_model=ReceiptPublic)
-def read_receipt(
+async def read_receipt(
     receipt_id: uuid.UUID,
     session: SessionDep,
     current_user: CurrentUser,
 ) -> Receipt:
-    receipt = _get_user_receipt(session, current_user.id, receipt_id)
+    receipt = await _get_user_receipt(session, current_user.id, receipt_id)
     return receipt
 
 
 @router.patch("/{receipt_id}", response_model=ReceiptPublic)
-def update_receipt(
+async def update_receipt(
     receipt_id: uuid.UUID,
     receipt_in: ReceiptUpdate,
     session: SessionDep,
     current_user: CurrentUser,
 ) -> Receipt:
-    receipt = _get_user_receipt(session, current_user.id, receipt_id)
+    receipt = await _get_user_receipt(session, current_user.id, receipt_id)
 
     if receipt_in.status == ReceiptStatus.COMPLETED:
-        items = _get_receipt_items(session, receipt.id)
+        items = await _get_receipt_items(session, receipt.id)
         incomplete_items = [
             item for item in items if item.product_id is None and not item.is_skipped
         ]
@@ -118,48 +119,48 @@ def update_receipt(
         receipt.status = ReceiptStatus.DRAFT
 
     session.add(receipt)
-    session.commit()
-    session.refresh(receipt)
+    await session.commit()
+    await session.refresh(receipt)
     return receipt
 
 
 @router.delete("/{receipt_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_receipt(
+async def delete_receipt(
     receipt_id: uuid.UUID,
     session: SessionDep,
     current_user: CurrentUser,
 ) -> None:
-    receipt = _get_user_receipt(session, current_user.id, receipt_id)
+    receipt = await _get_user_receipt(session, current_user.id, receipt_id)
     file_key = receipt.file_key
 
-    session.exec(delete(ReceiptItem).where(ReceiptItem.receipt_id == receipt.id))
-    session.delete(receipt)
-    session.commit()
+    await session.exec(delete(ReceiptItem).where(ReceiptItem.receipt_id == receipt.id))
+    await session.delete(receipt)
+    await session.commit()
 
     (Path(settings.RECEIPT_UPLOAD_DIR) / file_key).unlink(missing_ok=True)
 
 
 @router.get("/{receipt_id}/items", response_model=list[ReceiptItemReviewPublic])
-def read_receipt_items(
+async def read_receipt_items(
     receipt_id: uuid.UUID,
     session: SessionDep,
     current_user: CurrentUser,
 ) -> list[ReceiptItem]:
-    receipt = _get_user_receipt(session, current_user.id, receipt_id)
-    items = _get_receipt_items(session, receipt.id)
+    receipt = await _get_user_receipt(session, current_user.id, receipt_id)
+    items = await _get_receipt_items(session, receipt.id)
     return items
 
 
 @router.patch("/{receipt_id}/items/{item_id}", response_model=ReceiptItemReviewPublic)
-def update_receipt_item(
+async def update_receipt_item(
     receipt_id: uuid.UUID,
     item_id: uuid.UUID,
     item_in: ReceiptItemUpdate,
     session: SessionDep,
     current_user: CurrentUser,
 ) -> ReceiptItem:
-    receipt = _get_user_receipt(session, current_user.id, receipt_id)
-    item = session.get(ReceiptItem, item_id)
+    receipt = await _get_user_receipt(session, current_user.id, receipt_id)
+    item = await session.get(ReceiptItem, item_id)
     if item is None or item.receipt_id != receipt.id:
         raise HTTPException(status_code=404, detail="Receipt item not found")
     if receipt.status == ReceiptStatus.COMPLETED:
@@ -174,7 +175,7 @@ def update_receipt_item(
         if product_id is None:
             item.product_id = None
         else:
-            product = session.get(Product, product_id)
+            product = await session.get(Product, product_id)
             if product is None:
                 raise HTTPException(status_code=404, detail="Product not found")
             item.product_id = product.id
@@ -186,12 +187,11 @@ def update_receipt_item(
             item.product_id = None
 
     session.add(item)
-    session.commit()
-    session.refresh(item)
-    return item
+    await session.commit()
+    return await _get_receipt_item(session, receipt.id, item.id)
 
 
-def _get_user_receipt(
+async def _get_user_receipt(
     session: SessionDep,
     user_id: uuid.UUID,
     receipt_id: uuid.UUID,
@@ -200,16 +200,33 @@ def _get_user_receipt(
         Receipt.id == receipt_id,
         Receipt.user_id == user_id,
     )
-    receipt = session.exec(statement).first()
+    receipt = (await session.exec(statement)).first()
     if receipt is None:
         raise HTTPException(status_code=404, detail="Receipt not found")
     return receipt
 
 
-def _get_receipt_items(session: SessionDep, receipt_id: uuid.UUID) -> list[ReceiptItem]:
+async def _get_receipt_item(
+    session: SessionDep,
+    receipt_id: uuid.UUID,
+    item_id: uuid.UUID,
+) -> ReceiptItem:
     statement = (
         select(ReceiptItem)
+        .options(selectinload(ReceiptItem.product))
+        .where(ReceiptItem.id == item_id, ReceiptItem.receipt_id == receipt_id)
+    )
+    item = (await session.exec(statement)).first()
+    if item is None:
+        raise HTTPException(status_code=404, detail="Receipt item not found")
+    return item
+
+
+async def _get_receipt_items(session: SessionDep, receipt_id: uuid.UUID) -> list[ReceiptItem]:
+    statement = (
+        select(ReceiptItem)
+        .options(selectinload(ReceiptItem.product))
         .where(ReceiptItem.receipt_id == receipt_id)
         .order_by(ReceiptItem.line_number)
     )
-    return list(session.exec(statement).all())
+    return list((await session.exec(statement)).all())

@@ -10,6 +10,8 @@ By default, only products with a missing image_url or Open Food Facts alias are 
 and a SQLite backup is created next to the database before writing.
 """
 
+# ruff: noqa: T201
+
 from __future__ import annotations
 
 import argparse
